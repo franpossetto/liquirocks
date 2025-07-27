@@ -1,0 +1,13 @@
+version: '3'
+services:
+  liquiDB:
+    image: postgres:latest
+    container_name: liqui_db
+    environment:
+      POSTGRES_USER: liqui
+      POSTGRES_PASSWORD: rocks
+      POSTGRES_DB: liquirocks_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
