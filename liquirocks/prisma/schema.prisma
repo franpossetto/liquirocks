@@ -8,9 +8,186 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
 model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
-  @@map("app_user")
+  id         Int      @id @default(autoincrement()) @map("id")
+  email      String   @unique @map("email")
+  name       String?  @map("name")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("__users")
+}
+
+model Client {
+  id         String    @id @default(uuid()) @map("id")
+  name       String    @map("name")
+  phone      String?   @map("phone")
+  email      String?   @map("email")
+  address    String?   @map("address")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  quotes     Quote[]
+  orders     Order[]
+
+  @@map("clients")
+}
+
+model Material {
+  id         String            @id @default(uuid()) @map("id")
+  name       String            @map("name")
+  unit       String            @map("unit")
+  createdAt  DateTime          @default(now()) @map("created_at")
+  updatedAt  DateTime          @updatedAt @map("updated_at")
+
+  recipes    ConcreteRecipe[] 
+  stock      MaterialStock[]
+  @@map("materials")
+}
+
+model MaterialStock {
+  id         String   @id @default(uuid()) @map("id")
+  materialId String   @map("material_id")
+  quantity   Float    @map("quantity")
+  unit       String   @map("unit")
+  location   String?  @map("location") // opcional: planta, depósito, etc.
+  plantId String? @map("plant_id")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  
+  plant   Plant?  @relation(fields: [plantId], references: [id])
+  material   Material @relation(fields: [materialId], references: [id])
+
+  @@map("material_stock")
+}
+
+model ConcreteType {
+  id        String            @id @default(uuid()) @map("id")
+  code      String            @map("code")
+  name      String            @map("name")
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+
+  recipes   ConcreteRecipe[]
+  orders Order[]
+  quotes Quote[]
+
+  @@map("concrete_types")
+}
+
+model ConcreteRecipe {
+  id             String   @id @default(uuid()) @map("id")
+  concreteTypeId String   @map("concrete_type_id")
+  materialId     String   @map("material_id")
+  quantity       Float    @map("quantity")
+  unit           String   @map("unit") // kg, L, etc.
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  concreteType   ConcreteType @relation(fields: [concreteTypeId], references: [id])
+  material       Material     @relation(fields: [materialId], references: [id])
+
+  @@map("concrete_recipes")
+}
+
+model Plant {
+  id         String    @id @default(uuid()) @map("id")
+  name       String    @map("name")
+  location   String?   @map("location")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  orders     Order[]
+  stock      MaterialStock[]
+
+  @@map("plants")
+}
+
+model Quote {
+  id             String     @id @default(uuid()) @map("id")
+  concreteTypeId String     @map("concrete_type_id")
+  clientId       String     @map("client_id")
+  volume         Float      @map("volume")
+  estimatedDate  DateTime?  @map("estimated_date")
+  status         String     @map("status")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  concreteType   ConcreteType @relation(fields: [concreteTypeId], references: [id])
+  client         Client       @relation(fields: [clientId], references: [id])
+  order          Order?       @relation("QuoteOrder")
+
+  @@map("quotes")
+}
+
+model Order {
+  id             String    @id @default(uuid()) @map("id")
+  concreteTypeId String    @map("concrete_type_id")
+  clientId       String    @map("client_id")
+  quoteId        String?   @unique   @map("quote_id")
+  plantId        String?   @map("plant_id")
+  volume         Float     @map("volume")
+  deliveryDate   DateTime  @map("delivery_date")
+  status         String    @map("status")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  concreteType   ConcreteType @relation(fields: [concreteTypeId], references: [id])
+  client         Client       @relation(fields: [clientId], references: [id])
+  quote          Quote?       @relation("QuoteOrder", fields: [quoteId], references: [id])
+  plant          Plant?       @relation(fields: [plantId], references: [id])
+  deliveries     Delivery[]
+
+  @@map("orders")
+}
+
+model Delivery {
+  id              String    @id @default(uuid()) @map("id")
+  orderId         String    @map("order_id")
+  truckId         String    @map("truck_id")
+  driverId        String    @map("driver_id")
+  volume          Float     @map("volume")
+  deliveredAt     DateTime  @map("delivered_at")
+  status          String    @map("status")
+  notes           String?   @map("notes")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  truck   Truck   @relation(fields: [truckId], references: [id])
+  driver  Driver  @relation(fields: [driverId], references: [id])
+
+  @@map("deliveries")
+}
+
+model Truck {
+  id           String   @id @default(uuid()) @map("id")
+  internalCode String   @map("internal_code")
+  licensePlate String   @map("license_plate")
+  brand        String   @map("brand")
+  model        String   @map("model")
+  year         Int      @map("year")
+  odometer     Int      @map("odometer")
+  truckType    String   @map("truck_type")
+  status       String   @map("status")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  deliveries   Delivery[]
+
+  @@map("trucks")
+}
+
+model Driver {
+  id         String   @id @default(uuid()) @map("id")
+  name       String   @map("name")
+  license    String   @map("license")
+  phone      String?  @map("phone")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  deliveries Delivery[]
+
+  @@map("drivers")
 }
